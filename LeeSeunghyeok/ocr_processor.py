@@ -1,82 +1,49 @@
-# ocr_processor.py
+from PIL import Image
+import io
 
-# 필요한 라이브러리 임포트
 from paddleocr import PaddleOCR
 import numpy as np
 
-# OCR 처리를 담당하는 클래스 정의
 class OCRProcessor:
-    """
-    PaddleOCR을 사용하여 이미지에서 텍스트를 추출하는 클래스.
-    """
-    # 클래스가 생성될 때 초기 설정을 하는 함수
     def __init__(self):
-        """
-        PaddleOCR 모델 초기화.
-        - lang='korean': 한국어와 영어를 함께 인식 ('en'도 포함됨)
-        - use_gpu=True: GPU 사용 설정 (GPU가 없으면 자동으로 CPU 사용)
-        """
-        print("PaddleOCR 모델을 로딩합니다...")
-        self.ocr = PaddleOCR(use_angle_cls=True, lang='korean', use_gpu=True)
+        print("PaddleOCR 모델을 로딩합니다... (안정화 모드)")
+        self.ocr = PaddleOCR(lang='korean')
         print("✅ PaddleOCR 모델 로딩 완료!")
 
-    # 이미지를 받아 텍스트를 추출하는 함수
     def process_image(self, image_source):
         """
-        이미지 바이트(bytes)를 입력받아 텍스트를 추출.
-
-        Args:
-            image_source (bytes): 사용자가 업로드한 이미지 파일의 바이트 데이터.
-
-        Returns:
-            str: 이미지에서 추출된 텍스트 전체. 오류 발생 시 오류 메시지 반환.
+        이미지 바이트(bytes)를 입력받아 텍스트를 추출합니다.
+        - 어떤 이미지 형식이든 3채널 RGB로 변환하여 안정성을 확보합니다.
         """
         try:
-            # 이미지 바이트를 numpy 배열로 변환
-            # 웹에서 바로 받은 이미지 데이터 처리에 적합
-            np_array = np.frombuffer(image_source, np.uint8)
+            # 이미지를 Pillow로 열고, 'RGB' 모드로 강제 변환합니다.
+            # 1. 이미지 바이트를 메모리 상의 파일처럼 다룹니다.
+            image_file = io.BytesIO(image_source)
+            # 2. Pillow를 사용해 이미지를 엽니다.
+            image = Image.open(image_file)
+            # 3. 흑백이든, 투명 배경이든, 무조건 3채널 RGB 컬러로 변환합니다.
+            rgb_image = image.convert('RGB')
+            # 4. 변환된 이미지를 PaddleOCR이 좋아하는 numpy 배열로 바꿉니다.
+            np_array = np.array(rgb_image)
             
-            # PaddleOCR로 텍스트 인식 실행
-            # self.ocr.ocr()은 이미지 데이터와 텍스트 분류(cls) 여부를 인자로 받음
-            result = self.ocr.ocr(np_array, cls=True)
-            
-            # 결과가 비어있는 경우 처리
+            # 이제 안전하게 변환된 이미지를 OCR에 전달합니다.
+            result = self.ocr.ocr(np_array)
+
             if not result or not result[0]:
                 return "이미지에서 텍스트를 추출하지 못했습니다."
 
-            # 추출된 텍스트 조각들을 리스트로 만듦
-            # result 구조: [[[[좌표], [좌표], ...], ('텍스트', 정확도)], ...]
-            # 여기서 '텍스트' 부분만 추출
-            text_lines = [line[1][0] for line in result[0]]
+            text_lines = []
+            for line_group in result:
+                for line_info in line_group:
+                    if len(line_info) > 1 and isinstance(line_info[1], (tuple, list)) and len(line_info[1]) > 0:
+                        text = line_info[1][0]
+                        text_lines.append(text)
             
-            # 텍스트 라인들을 하나의 문자열로 결합
-            return "\n".join(text_lines)
+            if text_lines:
+                return "\n".join(text_lines)
+            else:
+                return "이미지에서 텍스트를 추출하지 못했습니다. (내용 없음)"
 
         except Exception as e:
-            # 오류 발생 시 사용자에게 알려줄 메시지
-            return f"OCR 처리 중 오류가 발생했습니다: {e}"
-
-# 이 파일이 메인으로 실행될 때만 아래 테스트 코드를 실행
-if __name__ == '__main__':
-    # 테스트용 이미지 파일 경로 (실제 파일 경로로 수정 필요)
-    # 예시: test_image.png
-    image_path = "YOUR_TEST_IMAGE_PATH.jpg" # 여기에 테스트할 이미지 파일 경로를 넣어봐!
-
-    try:
-        # OCRProcessor 객체 생성
-        processor = OCRProcessor()
-        
-        # 이미지 파일을 바이너리 읽기 모드로 열기
-        with open(image_path, 'rb') as f:
-            image_bytes = f.read()
-
-        # 이미지 처리 및 텍스트 추출
-        extracted_text = processor.process_image(image_bytes)
-        
-        print("\n--- OCR 추출 결과 ---")
-        print(extracted_text)
-
-    except FileNotFoundError:
-        print(f"'{image_path}' 파일을 찾을 수 없습니다. 테스트를 위해 파일 경로를 확인해주세요.")
-    except Exception as e:
-        print(f"테스트 중 오류 발생: {e}")
+            print(f"[OCR-ERROR] 처리 중 예상치 못한 오류 발생: {e}")
+            return f"OCR 처리 중 문제가 발생했습니다. 관리자에게 문의하세요."
