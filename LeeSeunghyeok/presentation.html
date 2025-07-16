@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 논술 첨삭 멘토봇 | 프로젝트 발표</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #1a202c; /* 다크 모드 배경 */
+        }
+        .presentation-container {
+            width: 1280px;
+            height: 720px;
+            position: relative;
+            margin: 2rem auto;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        .slide {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: #0d1117;
+            color: #e2e8f0;
+            padding: 60px 80px;
+            display: none; /* 기본적으로 모든 슬라이드 숨김 */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease-in-out;
+            border: 1px solid #30363d;
+        }
+        .slide.active {
+            display: flex; /* 활성화된 슬라이드만 보임 */
+        }
+        .nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: none;
+            padding: 1rem;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 2rem;
+            transition: background-color 0.3s;
+        }
+        .nav-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        #prevBtn { left: 10px; }
+        #nextBtn { right: 10px; }
+        .slide-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            text-align: center;
+            background: linear-gradient(to right, #38bdf8, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .slide-subtitle {
+            font-size: 1.5rem;
+            font-weight: 400;
+            color: #94a3b8;
+            text-align: center;
+        }
+        .content-box {
+            background-color: rgba(255,255,255,0.05);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #38bdf8;
+        }
+        li { margin-bottom: 0.75rem; }
+    </style>
+</head>
+<body>
+
+    <div class="presentation-container">
+        <!-- Navigation Buttons -->
+        <button id="prevBtn" class="nav-btn rounded-full"><i class="fas fa-chevron-left"></i></button>
+        <button id="nextBtn" class="nav-btn rounded-full"><i class="fas fa-chevron-right"></i></button>
+
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <h1 class="slide-title text-8xl">AI 논술 첨삭 멘토봇</h1>
+            <p class="slide-subtitle mt-4">"학원에 가지 않고, 나만의 AI 멘토와 함께 대입 논술을 정복하세요."</p>
+            <p class="absolute bottom-10 text-gray-500">SKN14-3rd-5Team</p>
+        </div>
+
+        <!-- Slide 2: Team Introduction -->
+        <div class="slide">
+            <h2 class="slide-title">팀원 소개 및 역할</h2>
+            <div class="w-full mt-8">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b-2 border-gray-600">
+                            <th class="p-4 text-2xl font-bold text-center">이름</th>
+                            <th class="p-4 text-2xl font-bold">역할 분담</th>
+                            <th class="p-4 text-2xl font-bold text-center">GitHub</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-gray-700">
+                            <td class="p-4 text-xl text-center">[팀원1]</td>
+                            <td class="p-4 text-xl">프로젝트 총괄 및 데이터 수집/전처리</td>
+                            <td class="p-4 text-xl text-center"><a href="#" class="text-blue-400 hover:underline"><i class="fab fa-github"></i> Link</a></td>
+                        </tr>
+                        <tr class="border-b border-gray-700">
+                            <td class="p-4 text-xl text-center">[팀원2]</td>
+                            <td class="p-4 text-xl">프론트엔드 개발 (Streamlit), 데이터 수집/전처리</td>
+                            <td class="p-4 text-xl text-center"><a href="#" class="text-blue-400 hover:underline"><i class="fab fa-github"></i> Link</a></td>
+                        </tr>
+                        <tr class="border-b border-gray-700">
+                            <td class="p-4 text-xl text-center">[팀원3]</td>
+                            <td class="p-4 text-xl">데이터 전처리 및 백엔드 개발 (RAG)</td>
+                            <td class="p-4 text-xl text-center"><a href="#" class="text-blue-400 hover:underline"><i class="fab fa-github"></i> Link</a></td>
+                        </tr>
+                        <tr class="border-b border-gray-700">
+                            <td class="p-4 text-xl text-center">[팀원4]</td>
+                            <td class="p-4 text-xl">데이터 전처리 및 백엔드 개발 (RAG)</td>
+                            <td class="p-4 text-xl text-center"><a href="#" class="text-blue-400 hover:underline"><i class="fab fa-github"></i> Link</a></td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 text-xl text-center">[팀원5]</td>
+                            <td class="p-4 text-xl">백엔드 개발(RAG) 프롬프팅</td>
+                            <td class="p-4 text-xl text-center"><a href="#" class="text-blue-400 hover:underline"><i class="fab fa-github"></i> Link</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 3: Motivation -->
+        <div class="slide">
+            <h2 class="slide-title">주제 선정 이유</h2>
+            <p class="slide-subtitle mb-12">"논술, 꼭 학원에 가야만 할까?"</p>
+            <div class="grid grid-cols-3 gap-10 w-full text-center">
+                <div class="content-box">
+                    <i class="fas fa-book-open text-5xl text-blue-400 mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">독학의 어려움</h3>
+                    <p class="text-lg text-gray-400">정해진 답이 없어 막막하고, 객관적인 피드백을 받기 어렵습니다.</p>
+                </div>
+                <div class="content-box">
+                    <i class="fas fa-wallet text-5xl text-blue-400 mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">사교육 의존성</h3>
+                    <p class="text-lg text-gray-400">많은 학생들이 비싼 비용을 지불하며 학원에 의존하게 됩니다.</p>
+                </div>
+                <div class="content-box">
+                    <i class="fas fa-robot text-5xl text-blue-400 mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">챗봇 시대의 가능성</h3>
+                    <p class="text-lg text-gray-400">'개인 과외'의 경험을 기술로 구현하여 교육 격차를 해소하고자 합니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Data -->
+        <div class="slide">
+            <h2 class="slide-title">데이터 수집 및 정제</h2>
+            <div class="grid grid-cols-2 gap-12 w-full mt-8">
+                <div>
+                    <h3 class="text-3xl font-bold mb-4 flex items-center"><i class="fas fa-database mr-3 text-blue-400"></i>1. 데이터 수집</h3>
+                    <ul class="list-none text-xl space-y-4 text-gray-300">
+                        <li><i class="fas fa-check-circle text-green-400 mr-2"></i><b>출처:</b> 각 대학 입학처의 공식 논술 가이드북</li>
+                        <li><i class="fas fa-check-circle text-green-400 mr-2"></i><b>내용:</b> 기출문제, 출제의도, 채점기준, 모범답안</li>
+                        <li class="p-3 bg-yellow-900 bg-opacity-50 rounded-lg"><i class="fas fa-triangle-exclamation text-yellow-400 mr-2"></i><b>주의:</b> 교육 및 연구 목적으로만 사용 (상업적 이용 불가)</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-3xl font-bold mb-4 flex items-center"><i class="fas fa-filter mr-3 text-blue-400"></i>2. 데이터 정제</h3>
+                    <ul class="list-none text-xl space-y-4 text-gray-300">
+                        <li><i class="fas fa-check-circle text-green-400 mr-2"></i><b>문제 추출:</b> 사용자가 문제를 확인할 수 있도록 PDF로 별도 관리</li>
+                        <li><i class="fas fa-check-circle text-green-400 mr-2"></i><b>핵심 정보 구조화:</b> 출제의도, 채점기준, 모범답안을 JSON 파일로 생성</li>
+                        <li><i class="fas fa-check-circle text-green-400 mr-2"></i><b>최종 변환:</b> JSON 데이터를 LangChain Document 객체로 변환하여 활용</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 5: Tech Stack -->
+        <div class="slide">
+            <h2 class="slide-title">기술 스택</h2>
+            <div class="w-full mt-8">
+                <table class="w-full text-left">
+                    <tbody>
+                        <tr class="border-b border-gray-700">
+                            <td class="p-4 text-2xl font-semibold w-1/4">🖥️ 개발 환경</td>
+                            <td class="p-4"><img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=Python&logoColor=white" /> <img src="https://img.shields.io/badge/VS%20Code-007ACC?style=for-the-badge&logo=VisualStudioCode&logoColor=white" /></td>
+                        </tr>
+                        <tr class="border-b border-gray-700">
+                            <td class="p-4 text-2xl font-semibold">🧠 AI / LLM</td>
+                            <td class="p-4"><img src="https://img.shields.io/badge/LangChain-005F73?style=for-the-badge&logo=LangChain&logoColor=white" /> <img src="https://img.shields.io/badge/OpenAI%20GPT--4o-412991?style=for-the-badge&logo=OpenAI&logoColor=white" /></td>
+                        </tr>
+                        <tr class="border-b border-gray-700">
+                            <td class="p-4 text-2xl font-semibold">📦 벡터 DB / 임베딩</td>
+                            <td class="p-4"><img src="https://img.shields.io/badge/FAISS-0078FF?style=for-the-badge&logo=Facebook&logoColor=white" /> <img src="https://img.shields.io/badge/Hugging%20Face-FFD21E?style=for-the-badge&logo=HuggingFace&logoColor=black" /></td>
+                        </tr>
+                         <tr class="border-b border-gray-700">
+                            <td class="p-4 text-2xl font-semibold">👁️ OCR</td>
+                            <td class="p-4"><img src="https://img.shields.io/badge/PaddleOCR-0054F4?style=for-the-badge&logo=PaddlePaddle&logoColor=white" /></td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 text-2xl font-semibold">🌐 프론트엔드</td>
+                            <td class="p-4"><img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=Streamlit&logoColor=white" /></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 6: Data Flow -->
+        <div class="slide">
+            <h2 class="slide-title">데이터 흐름도</h2>
+            <div class="w-full h-full flex items-center justify-center mt-4 bg-white rounded-lg p-4">
+                 <img src="https://github.com/dreamwars99/SKN14-3rd-5Team/blob/main/LeeSeunghyeok/images/Group%2016%20(1).png?raw=true" alt="Data Flow Diagram" class="max-w-full max-h-full object-contain">
+            </div>
+        </div>
+
+        <!-- Slide 7: User Flow -->
+        <div class="slide">
+            <h2 class="slide-title">사용자 흐름도</h2>
+            <div class="w-full h-full flex items-center justify-center mt-4 bg-white rounded-lg p-4">
+                 <img src="https://github.com/dreamwars99/SKN14-3rd-5Team/blob/main/LeeSeunghyeok/images/Group%201%20(1).png?raw=true" alt="User Flow Diagram" class="max-w-full max-h-full object-contain">
+            </div>
+        </div>
+
+        <!-- Slide 8: Result Screenshot -->
+        <div class="slide">
+            <h2 class="slide-title">주요 기능 시연</h2>
+            <div class="grid grid-cols-2 gap-8 w-full h-full mt-4">
+                <div class="flex flex-col items-center">
+                    <h3 class="text-2xl font-bold mb-2">메인 화면 및 문제 선택</h3>
+                    <div class="w-full h-full bg-gray-800 rounded-lg flex items-center justify-center text-gray-500">[메인 화면 스크린샷]</div>
+                </div>
+                <div class="flex flex-col items-center">
+                    <h3 class="text-2xl font-bold mb-2">AI 첨삭 결과</h3>
+                    <div class="w-full h-full bg-gray-800 rounded-lg flex items-center justify-center text-gray-500">[첨삭 결과 스크린샷]</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Future Work -->
+        <div class="slide">
+            <h2 class="slide-title">향후 발전 가능성</h2>
+            <div class="grid grid-cols-2 gap-12 w-full mt-8 text-left">
+                <div class="content-box">
+                    <h3 class="text-3xl font-bold mb-4 flex items-center"><i class="fas fa-chart-line mr-3 text-blue-400"></i>첨삭 히스토리 & 성장 대시보드</h3>
+                    <ul class="list-disc list-inside text-xl space-y-2 text-gray-300">
+                        <li>모든 첨삭 기록 DB 저장</li>
+                        <li>예상 점수 변화 그래프 시각화</li>
+                        <li>자주 틀리는 약점 키워드 태그 클라우드 제공</li>
+                    </ul>
+                </div>
+                <div class="content-box">
+                    <h3 class="text-3xl font-bold mb-4 flex items-center"><i class="fas fa-lightbulb mr-3 text-blue-400"></i>문제 추천 시스템</h3>
+                    <ul class="list-disc list-inside text-xl space-y-2 text-gray-300">
+                        <li>사용자의 누적된 약점 데이터 분석</li>
+                        <li>약점 보완에 도움이 될 다른 대학의 유사 문제 자동 추천</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 10: Retrospective -->
+        <div class="slide">
+            <h2 class="slide-title">한 줄 회고록</h2>
+            <div class="w-full mt-8 space-y-6">
+                <div class="bg-gray-800 p-6 rounded-lg relative">
+                    <p class="text-2xl italic">"수많은 오류와 싸우며 문제 해결 능력을 기를 수 있었던, 값진 디버깅의 여정이었습니다."</p>
+                    <p class="text-right mt-2 text-xl font-bold text-blue-400">- [팀원1]</p>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-lg relative">
+                    <p class="text-2xl italic">"RAG 아키텍처를 직접 구현해보며 LLM의 한계와 가능성을 동시에 느낄 수 있었습니다."</p>
+                    <p class="text-right mt-2 text-xl font-bold text-blue-400">- [팀원2]</p>
+                </div>
+                 <!-- 다른 팀원 회고 추가 -->
+            </div>
+        </div>
+        
+        <!-- Slide 11: Q&A -->
+        <div class="slide">
+             <h1 class="slide-title text-8xl">Q & A</h1>
+             <p class="slide-subtitle mt-4">감사합니다</p>
+        </div>
+
+    </div>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        let currentSlideIndex = 0;
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === index);
+            });
+        }
+
+        function nextSlide() {
+            currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+            showSlide(currentSlideIndex);
+        }
+
+        function prevSlide() {
+            currentSlideIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
+            showSlide(currentSlideIndex);
+        }
+
+        prevBtn.addEventListener('click', prevSlide);
+        nextBtn.addEventListener('click', nextSlide);
+
+        // 키보드 네비게이션
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // 초기 슬라이드 표시
+        showSlide(currentSlideIndex);
+    </script>
+
+</body>
+</html>
