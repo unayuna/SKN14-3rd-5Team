@@ -68,9 +68,14 @@ def main():
                 image_bytes = uploaded_file.getvalue()
                 student_answer_text = ocr_processor.process_image(image_bytes)
                 
-                if "문제" in student_answer_text: # OCR 실패 메시지를 더 유연하게 감지
-                    st.error(student_answer_text)
+                OCR_FAILURE_MESSAGE = "OCR 처리 중 문제가 발생했습니다"
+                if OCR_FAILURE_MESSAGE in student_answer_text:
+                    st.error(student_answer_text) # OCR 실패 시에만 에러 메시지 출력
                     return
+                
+                # if "문제" in student_answer_text: # OCR 실패 메시지를 더 유연하게 감지
+                #     st.error(student_answer_text)
+                #     return
 
                 model_answer_text = grader.get_model_answer(question_info)
                 correction_result = grader.grade_essay(question_info, student_answer_text)
