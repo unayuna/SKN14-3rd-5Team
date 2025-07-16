@@ -3,13 +3,13 @@ from dotenv import load_dotenv
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyMuPDFLoader, UnstructuredPDFLoader
 from langchain_community.vectorstores import FAISS
-from langchain_pinecone import PineconeVectorStore
+# from langchain_pinecone import PineconeVectorStore
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatMessagePromptTemplate, ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from pinecone import Pinecone as PineconeClient
-from pinecone import ServerlessSpec
+# from pinecone import Pinecone as PineconeClient
+# from pinecone import ServerlessSpec
 import time
 
 class Summary_chatbot:
