@@ -1,0 +1,11 @@
+건국대 - konkuk
+경희대 - khu
+동국대 - dongguk
+서강대 - sogang
+성균관대 - skku
+숙명여대 - sookmyung
+숭실대 - soongsil
+아주대 - ajou
+이화여대 - ewha
+한국외대 - hufs
+홍익대 - hongik

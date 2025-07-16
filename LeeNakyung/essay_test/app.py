@@ -1,9 +1,10 @@
 import streamlit as st
-from rag import load_data, build_vectorstore, generate_feedback, build_answer_chatbot
+from rag import AnswerChatRAG
+from rag import load_data, build_vectorstore, generate_feedback, extract_text_from_image
 from langchain.chat_models import ChatOpenAI
 from rag import OPENAI_API_KEY
 from langchain_core.output_parsers import StrOutputParser
-from langchain.prompts import PromptTemplate
+
 
 st.title("📝 RAG 기반 논술 첨삭 도우미")
 
@@ -53,6 +54,20 @@ if selected_entry:
         st.session_state.feedback_result = ""
 
     # 사용자 입력
+    # st.subheader("📷 손글씨 답안 업로드 (OCR 인식)")
+    #
+    # uploaded_image = st.file_uploader("이미지를 업로드하세요", type=["jpg", "jpeg", "png"])
+    #
+    # if uploaded_image is not None:
+    #     st.image(uploaded_image, caption="업로드된 이미지", use_column_width=True)
+    #
+    #     if st.button("🧠 텍스트 추출"):
+    #         with st.spinner("OCR 처리 중..."):
+    #             extracted_text = extract_text_from_image(uploaded_image)
+    #             st.success("텍스트 추출 완료!")
+    #             st.text_area("📝 추출된 답안", value=extracted_text, height=300, key="ocr_answer")
+    #             st.session_state.user_answer = extracted_text
+
     user_answer = st.text_area("✏️ 나의 답안 입력", height=300)
     st.session_state.user_answer = user_answer
 
@@ -75,9 +90,26 @@ if selected_entry:
     st.markdown("---")
     st.subheader("🧠 내 답변 기반 Q&A 챗봇")
 
+    faq_questions = [
+        "내 주장의 논리 전개가 괜찮은가요?",
+        "더 설득력 있게 쓰려면 어떤 표현을 쓰면 좋을까요?",
+        "결론 부분을 어떻게 보완할 수 있을까요?",
+        "예시가 부족한가요?",
+        "문장이 너무 평범한가요? 인상 깊게 고치는 방법은?"
+    ]
+
+    st.markdown("#### 📌 자주 묻는 질문")
+    for i, question in enumerate(faq_questions):
+        if st.button(question, key=f"faq_{i}"):
+            st.session_state["faq_clicked"] = question
+
     if user_answer.strip():
-        vectorstore = build_answer_chatbot(user_answer)
+        rag = AnswerChatRAG(user_answer, openai_api_key=OPENAI_API_KEY)
         user_q = st.chat_input("내 답변에 대해 궁금한 점을 물어보세요!")
+
+        if "faq_clicked" in st.session_state and st.session_state["faq_clicked"]:
+            user_q = st.session_state["faq_clicked"]
+            st.session_state["faq_clicked"] = ""
 
         if "answer_chat_history" not in st.session_state:
             st.session_state.answer_chat_history = []
@@ -92,52 +124,12 @@ if selected_entry:
             with st.chat_message("user"):
                 st.markdown(user_q)
 
-            retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
-
-            # 체인 구성
-            prompt = PromptTemplate.from_template("""
-            당신은 10년 이상 수능 및 대학 논술을 전문적으로 가르쳐온 첨삭 전문가입니다.
-            학생의 질문에 대해 학생이 작성한 논술 문장을 바탕으로 명확하고 구체적인 피드백을 제공합니다.
-            
-            [제시 문장]
-            아래는 벡터 검색을 통해 선택된 학생의 답안 내용 일부입니다. 참고해 분석에 활용하세요.
-            
-            {context}
-            
-            [학생 질문]
-            {question}
-            
-            [답변 지침]
-            1. 질문의 요지를 파악하고, 답안 문장 중 관련 있는 내용을 연결해 해석합니다.
-            2. 부족하거나 개선이 필요한 부분이 있다면 논리적으로 설명하고 구체적인 문장 또는 방향을 제안합니다.
-            3. 피드백은 친절하고 조리 있게 제시하되, 논리성과 구조적 사고력을 기를 수 있도록 유도합니다.
-            
-            [답변 형식 예시]
-            - 분석: …
-            - 강점: …
-            - 보완점: …
-            - 개선 제안: …
-            
-            [답변]
-            """)
-
-            chain = (
-                    {
-                        "context": lambda x: "\n\n".join([
-                            doc.page_content for doc in retriever.get_relevant_documents(x["question"])
-                        ]),
-                        "question": lambda x: x["question"]
-                    }
-                    | prompt
-                    | ChatOpenAI(model="gpt-4", temperature=0, openai_api_key=OPENAI_API_KEY)
-                    | StrOutputParser()
-            )
-
             # 응답 생성
             with st.chat_message("assistant"):
                 with st.spinner("답변 생성 중..."):
-                    output = chain.invoke({"question": user_q})
+                    output = rag.invoke(user_q)
                     st.markdown(output)
                     st.session_state.answer_chat_history.append({"role": "assistant", "content": output})
+
     else:
         st.info("먼저 답안을 입력하세요.")
