@@ -6,7 +6,7 @@ from langchain_core.documents import Document
 import pickle
 
 JSON_DATA_DIR = "./01_data_preprocessing/json"
-OUTPUT_FILE = "processed_data.pkl"
+OUTPUT_FILE = "./01_data_preprocessing/faiss/preprocessed_documents.pkl"
 
 def process_json_data():
     all_documents = []

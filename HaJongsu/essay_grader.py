@@ -3,7 +3,6 @@
 import os
 from dotenv import load_dotenv
 import pickle
-import re
 
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
@@ -13,28 +12,37 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 
+FAISS_INDEX_DIR = './01_data_preprocessing/faiss'
+DOCUMENT_CACHE_PATH = "./01_data_preprocessing/faiss/preprocessed_documents.pkl"
+
 def safe_retriever_invoke(retriever, query):
-    docs = retriever.invoke(query)
+    docs = retriever.get_relevant_documents(query)
     if docs:
         return "\n".join([doc.page_content for doc in docs])
     return "관련 정보를 찾을 수 없습니다."
 
 class EssayGrader:
-    def __init__(self, processed_data_path: str):
+    def __init__(self):
         print("논술 첨삭기 초기화를 시작합니다...")
         self._setup_api_key()
         self.embedding_model = self._initialize_embedding_model()
         
-        print(f"\n전처리된 데이터 '{processed_data_path}' 파일을 로딩합니다...")
-        with open(processed_data_path, 'rb') as f:
-            all_documents = pickle.load(f)
-        self.documents = all_documents
-        print(f"✅ 총 {len(all_documents)}개의 문서 조각 로딩 완료!")
+        if os.path.exists(FAISS_INDEX_DIR):
+            print(f"\n📂 기존 FAISS 인덱스를 '{FAISS_INDEX_DIR}'에서 불러옵니다...")
+            self.vector_db = FAISS.load_local(FAISS_INDEX_DIR, self.embedding_model, allow_dangerous_deserialization=True)
+        else:
+            print(f"\n📄 전처리된 pickle 파일에서 문서를 불러와 FAISS 인덱스를 새로 생성합니다...")
+            with open(DOCUMENT_CACHE_PATH, 'rb') as f:
+                all_documents = pickle.load(f)
+            print(f"✅ 총 {len(all_documents)}개의 문서 조각 로딩 완료!")
+            
+            print("📌 벡터 인덱스 생성 중...")
+            self.vector_db = FAISS.from_documents(all_documents, self.embedding_model)
+            self.vector_db.save_local(FAISS_INDEX_DIR)
+            print(f"✅ FAISS 인덱스를 '{FAISS_INDEX_DIR}'에 저장 완료!")
 
-        print("\n문서 조각들을 벡터로 변환하여 DB에 저장합니다...")
-        self.vector_db = FAISS.from_documents(all_documents, self.embedding_model)
         self.retriever = self.vector_db.as_retriever()
-        print("✅ 벡터 데이터베이스 구축 완료!")
+        print("✅ 벡터 검색기 설정 완료!")
 
         self.correction_chain = self._build_rag_chain()
         print("✅ AI 논술 첨삭 RAG 체인 완성!")
@@ -119,7 +127,7 @@ class EssayGrader:
         })
 
     def get_document_content(self, question_id: str, source_type: str) -> str:
-        for doc in self.documents:
+        for doc in self.vector_db.docstore._dict.values():
             if doc.metadata.get("question_id") == question_id and doc.metadata.get("source_type") == source_type:
                 return doc.page_content
         return f"{source_type}을(를) 찾을 수 없습니다."
