@@ -15,10 +15,13 @@ from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 FAISS_INDEX_DIR = './01_data_preprocessing/faiss'
 DOCUMENT_CACHE_PATH = "./01_data_preprocessing/faiss/preprocessed_documents.pkl"
 
-def safe_retriever_invoke(retriever, query):
+def safe_retriever_invoke(retriever, query, source_type):
     docs = retriever.get_relevant_documents(query)
-    if docs:
-        return "\n".join([doc.page_content for doc in docs])
+    # if docs:
+    #     return "\n".join([doc.page_content for doc in docs])
+    for doc in docs:
+        if doc.metadata.get("source_type") == source_type:
+            return doc.page_content
     return "관련 정보를 찾을 수 없습니다."
 
 class EssayGrader:
@@ -26,6 +29,7 @@ class EssayGrader:
         print("논술 첨삭기 초기화를 시작합니다...")
         self._setup_api_key()
         self.embedding_model = self._initialize_embedding_model()
+        self.llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7)
         
         if os.path.exists(FAISS_INDEX_DIR):
             print(f"\n📂 기존 FAISS 인덱스를 '{FAISS_INDEX_DIR}'에서 불러옵니다...")
@@ -65,7 +69,6 @@ class EssayGrader:
         return model
 
     def _build_rag_chain(self):
-        llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7)
         output_parser = StrOutputParser()
         prompt_template = """
         [역할]
@@ -108,13 +111,13 @@ class EssayGrader:
         prompt = ChatPromptTemplate.from_template(prompt_template)
         chain = (
             {
-                "retrieved_model_answer": RunnableLambda(lambda x: safe_retriever_invoke(self.retriever, x["question_id"])),
-                "retrieved_scoring_criteria": RunnableLambda(lambda x: safe_retriever_invoke(self.retriever, x["question_id"])),
+                "retrieved_model_answer": RunnableLambda(lambda x: safe_retriever_invoke(self.retriever, x["question_id"], "모범답안")),
+                "retrieved_scoring_criteria": RunnableLambda(lambda x: safe_retriever_invoke(self.retriever, x["question_id"], "채점기준")),
                 "user_ocr_answer": lambda x: x["user_ocr_answer"],
                 "question_id": lambda x: x["question_id"]
             }
             | prompt
-            | llm
+            | self.llm
             | output_parser
         )
         return chain
@@ -131,3 +134,49 @@ class EssayGrader:
             if doc.metadata.get("question_id") == question_id and doc.metadata.get("source_type") == source_type:
                 return doc.page_content
         return f"{source_type}을(를) 찾을 수 없습니다."
+
+    def mento_chat(self, grading_criteria: str, sample_answer: str, user_answer: str, followup_question: str, history=[]) -> str:
+        prompt = f"""
+    [역할]
+    당신은 대치동에서 10년간 논술을 가르친, 냉철하지만 애정 어린 조언을 아끼지 않는 스타강사 '논리왕 김멘토'입니다.
+
+    [입력 정보]
+    1. [채점 기준]: {grading_criteria}
+    2. [모범 답안]: {sample_answer}
+    3. [학생 답안]: {user_answer}
+
+    [첨삭 절차 및 지시]
+    1. (이해) 학생 답안을 전체적으로 읽고 핵심 주장 파악
+    2. (비교) 채점 기준 및 예시답안과 비교하여 분석
+    3. (평가) 장단점 명시
+    4. (종합) 첨삭 문장 완성
+
+    [출력 형식]
+    ---
+    **[총평]**
+    ...
+
+    **[잘한 점 (칭찬 포인트) 👍]**
+    ...
+
+    **[아쉬운 점 (개선 포인트) ✍️]**
+    ...
+
+    **[이렇게 바꿔보세요 (대안 문장 제안) 💡]**
+    ...
+
+    **[예상 점수 및 다음 학습 팁 🚀]**
+    ...
+
+    [추가 질문]
+    {followup_question}
+    """
+        messages = [{"role": "system", "content": "너는 논리왕 김멘토로 행동해. 위 정보에 따라 학생에게 논리적이고 애정 어린 피드백을 제공해."}]
+        messages.append({"role": "user", "content": prompt})
+        for h in history:
+            messages.append({"role": "user", "content": h["user"]})
+            messages.append({"role": "assistant", "content": h["assistant"]})
+
+        llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7)
+        return llm.invoke(messages).content.strip()
+
