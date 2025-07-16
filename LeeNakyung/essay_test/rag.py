@@ -10,6 +10,11 @@ from langchain.schema import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain.prompts import PromptTemplate
 
+from paddleocr import PaddleOCR
+import cv2
+import numpy as np
+from PIL import Image
+
 load_dotenv(dotenv_path="../essay_test/.env")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -50,6 +55,27 @@ def build_vectorstore(question_bank):
     splits = text_splitter.split_documents(docs)
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY, model=OPENAI_EMBEDDING_MODEL)
     return FAISS.from_documents(splits, embeddings)
+
+
+# PaddleOCR 초기화 (한글 지원)
+ocr_model = PaddleOCR(use_angle_cls=True, lang='korean')  # ✅ 여기서만 cls 지정
+
+def extract_text_from_image(image_file):
+    # 이미지 열기
+    image = Image.open(image_file).convert("RGB")
+    image_np = np.array(image)
+
+    # OCR 수행
+    result = ocr_model.ocr(image_np)
+    print(result[0])
+    # 텍스트 추출
+    extracted_text = ""
+    # for line in result[0]:
+    #     line_text = line[1][0]  # 인식된 텍스트
+    #     extracted_text += line_text + "\n"
+    print('\n'.join(result[0]['rec_texts']))
+
+    return extracted_text.strip()
 
 
 def generate_feedback(llm, question_id, grading_criteria, sample_answer, user_answer, vectorstore):
