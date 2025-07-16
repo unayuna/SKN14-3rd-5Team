@@ -11,10 +11,16 @@ from essay_grader import EssayGrader
 @st.cache_resource
 def load_system():
     print("시스템 로딩 시작...")
-    grader = EssayGrader(processed_data_path="processed_data.pkl")
-    meta_list = [doc.metadata for doc in grader.documents]
+    grader = EssayGrader()
+    # meta_list = [doc.metadata for doc in grader.documents]
+    # meta_df = pd.DataFrame(meta_list)
+    # universities = sorted(meta_df['university'].unique())
+    
+    # FAISS 인덱스에서 문서 메타데이터 추출
+    all_docs = grader.vector_db.docstore._dict.values()
+    meta_list = [doc.metadata for doc in all_docs]
     meta_df = pd.DataFrame(meta_list)
-    universities = sorted(meta_df['university'].unique())
+    universities = sorted(meta_df['university'].unique())    
     print("시스템 로딩 완료!")
     return grader, meta_df, universities
 
