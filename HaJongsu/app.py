@@ -173,9 +173,19 @@ def render_exam():
         st.session_state[timer_key] = {
             "running": False,
             "paused": False,
-            "seconds": timer_minutes * 60
+            "seconds": timer_minutes * 60,
+            "ended" : False # 타이머 종료 여부
         }
     timer_state = st.session_state[timer_key]
+
+    if timer_state.get("running", False) or timer_state.get("ended", False):
+        if st.button("✏️ 답안 제출하기", key = "go_grading"):
+            st.session_state.page = "grading"
+            st.rerun()
+
+    # 타이머가 시작된 적도 없고, 정지/종료도 아닌 상태라면 안내 메시지 출력
+    elif not timer_state.get("running") and not timer_state.get("paused") and not timer_state.get("ended"):
+        st.info("⏱ 타이머가 시작된 후, 일시정지 또는 종료 버튼을 누르면 '답안 제출하기' 버튼이 나옵니다.")
 
     # ⏱️ 타이머 버튼 UI
     col1, col2, col3 = st.columns([1, 1, 1])
@@ -204,6 +214,7 @@ def render_exam():
             timer_state["running"] = False
             timer_state["paused"] = False
             timer_state["seconds"] = timer_minutes * 60
+            timer_state["ended"] = True
             components.html(f"""
                 <script>
                     sessionStorage.removeItem('remaining_{question_id}');
@@ -306,9 +317,12 @@ def render_grading():
             current_file = selected_files[index]
             image = Image.open(current_file)
             st.image(image, caption=f"{current_file.name} ({index + 1}/{len(selected_files)})", use_container_width=True)
+            # st.image(image, caption=f"{current_file.name} ({index + 1}/{len(selected_files)})", use_column_width=True)
+
 
             with st.expander("🔍 이미지 확대 보기"):
                 st.image(image, use_container_width=True)
+                # st.image(image, use_column_width=True)
 
             if st.button("🤖 GPT 첨삭 실행", key=f"gpt_feedback_{index}"):
                 with st.spinner("첨삭을 진행 중입니다..."):
@@ -378,6 +392,17 @@ def render_grading():
     # 자동 질문 처리
     if "faq_clicked" in st.session_state and st.session_state["faq_clicked"]:
         user_q = st.session_state["faq_clicked"]
+
+        with st.spinner("답변을 작성 중입니다..."):
+            gpt_response = grader.mento_chat(
+                st.session_state.grading_criteria,
+                st.session_state.model_answer,
+                st.session_state.extracted_text,
+                user_q,
+                st.session_state.chat_history
+            )
+            st.session_state.chat_history.append({"user": user_q, "assistant": gpt_response})
+
         st.session_state["faq_clicked"] = ""
 
     for i, turn in enumerate(st.session_state.chat_history[::-1]):
@@ -402,6 +427,14 @@ def main():
         st.session_state.selected_question = "문항1"
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
+    if 'grading_criteria' not in st.session_state:
+        st.session_state.grading_criteria = ""
+    if 'model_answer' not in st.session_state:
+        st.session_state.model_answer = ""
+    if 'extracted_text' not in st.session_state:
+        st.session_state.extracted_text = ""
+    if 'faq_clicked' not in st.session_state:
+        st.session_state.faq_clicked = ""
     
     if st.query_params.get("page"):
         st.session_state.page = st.query_params.get("page")
