@@ -151,37 +151,37 @@ UNIVERSITY_DATA = {
         "2023" : {
             "문항1" : {
                 "pdf" : "01_data_preprocessing/pdf/hongik/hongik_2023_1.pdf",
-                "pagd" : [0, 1, 2]
+                "page" : [0, 1, 2]
             },
             "문항2" : {
                 "pdf" : "01_data_preprocessing/pdf/hongik/hongik_2023_2.pdf",
-                "pagd" : [0, 1, 2]
+                "page" : [0, 1, 2]
             },
             "문항3" : {
                 "pdf" : "01_data_preprocessing/pdf/hongik/hongik_2023_3.pdf",
-                "pagd" : [0, 1, 2]
+                "page" : [0, 1, 2]
             },
             "문항4" : {
                 "pdf" : "01_data_preprocessing/pdf/hongik/hongik_2023_4.pdf",
-                "pagd" : [0, 1, 2]
+                "page" : [0, 1, 2]
             },
         },
         "2024" : {
             "문항1" : {
                 "pdf" : "01_data_preprocessing/pdf/hongik/hongik_2024_1.pdf",
-                "pagd" : [0, 1, 2]
+                "page" : [0, 1, 2]
             },
             "문항2" : {
                 "pdf" : "01_data_preprocessing/pdf/hongik/hongik_2024_2.pdf",
-                "pagd" : [0, 1, 2]
+                "page" : [0, 1, 2]
             },
             "문항3" : {
                 "pdf" : "01_data_preprocessing/pdf/hongik/hongik_2024_3.pdf",
-                "pagd" : [0, 1, 2]
+                "page" : [0, 1, 2]
             },
             "문항4" : {
                 "pdf" : "01_data_preprocessing/pdf/hongik/hongik_2024_4.pdf",
-                "pagd" : [0, 1, 2]
+                "page" : [0, 1, 2]
             },
         }
     }
