@@ -127,30 +127,32 @@ class EssayGrader:
             "user_ocr_answer": student_answer
         })
 
-    # def get_document_content(self, question_id: str, source_type: str) -> str:
-    #     for doc in self.vector_db.docstore._dict.values():
-    #         if doc.metadata.get("question_id") == question_id and doc.metadata.get("source_type") == source_type:
-    #             print("### 요청한 쿼리")
-    #             print(f"{question_id}")
-    #             print("### 🔍 검색된 문서 (from Retriever)")
-    #             print(f"`{doc.metadata}`")
-    #             return doc.page_content
-    #     return f"{source_type}을(를) 찾을 수 없습니다."
     def get_document_content(self, question_id: str, source_type: str) -> str:
-        import streamlit as st  # 함수 내부에서 사용 가능
-
         for doc in self.vector_db.docstore._dict.values():
             if doc.metadata.get("question_id") == question_id and doc.metadata.get("source_type") == source_type:
-                st.markdown("### 📌 요청한 쿼리")
-                st.write(f"문항 ID: `{question_id}`, 요청 유형: `{source_type}`")
-
-                st.markdown("### 🔍 검색된 문서 (from VectorDB)")
-                st.write(f"`{doc.metadata}`")
-                st.code(doc.page_content[:500])  # 앞부분만 보기 좋게 표시
-
+                print("### 요청한 쿼리")
+                print(f"{question_id}")
+                print("### 🔍 검색된 문서 (from Retriever)")
+                print(f"`{doc.metadata}`")
                 return doc.page_content
-
         return f"{source_type}을(를) 찾을 수 없습니다."
+    
+    # Documents 검색 출력용
+    # def get_document_content(self, question_id: str, source_type: str) -> str:
+    #     import streamlit as st  # 함수 내부에서 사용 가능
+
+    #     for doc in self.vector_db.docstore._dict.values():
+    #         if doc.metadata.get("question_id") == question_id and doc.metadata.get("source_type") == source_type:
+    #             st.markdown("### 📌 요청한 쿼리")
+    #             st.write(f"문항 ID: `{question_id}`, 요청 유형: `{source_type}`")
+
+    #             st.markdown("### 🔍 검색된 문서 (from VectorDB)")
+    #             st.write(f"`{doc.metadata}`")
+    #             st.code(doc.page_content[:500])  # 앞부분만 보기 좋게 표시
+
+    #             return doc.page_content
+
+    #     return f"{source_type}을(를) 찾을 수 없습니다."
 
     def mento_chat(self, grading_criteria: str, sample_answer: str, user_answer: str, followup_question: str, history=[]) -> str:
         prompt = f"""
