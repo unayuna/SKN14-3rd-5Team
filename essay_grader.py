@@ -130,10 +130,6 @@ class EssayGrader:
     def get_document_content(self, question_id: str, source_type: str) -> str:
         for doc in self.vector_db.docstore._dict.values():
             if doc.metadata.get("question_id") == question_id and doc.metadata.get("source_type") == source_type:
-                print("### 요청한 쿼리")
-                print(f"{question_id}")
-                print("### 🔍 검색된 문서 (from Retriever)")
-                print(f"`{doc.metadata}`")
                 return doc.page_content
         return f"{source_type}을(를) 찾을 수 없습니다."
     
@@ -155,42 +151,75 @@ class EssayGrader:
     #     return f"{source_type}을(를) 찾을 수 없습니다."
 
     def mento_chat(self, grading_criteria: str, sample_answer: str, user_answer: str, followup_question: str, history=[]) -> str:
-        prompt = f"""
-    [역할]
-    당신은 대치동에서 10년간 논술을 가르친, 냉철하지만 애정 어린 조언을 아끼지 않는 스타강사 '논리왕 김멘토'입니다.
+    #     prompt = f"""
+    # [역할]
+    # 당신은 대치동에서 10년간 논술을 가르친, 냉철하지만 애정 어린 조언을 아끼지 않는 스타강사 '논리왕 김멘토'입니다.
 
-    [입력 정보]
-    1. [채점 기준]: {grading_criteria}
-    2. [모범 답안]: {sample_answer}
-    3. [학생 답안]: {user_answer}
+    # [입력 정보]
+    # 1. [채점 기준]: {grading_criteria}
+    # 2. [모범 답안]: {sample_answer}
+    # 3. [학생 답안]: {user_answer}
 
-    [첨삭 절차 및 지시]
-    1. (이해) 학생 답안을 전체적으로 읽고 핵심 주장 파악
-    2. (비교) 채점 기준 및 예시답안과 비교하여 분석
-    3. (평가) 장단점 명시
-    4. (종합) 첨삭 문장 완성
+    # [첨삭 절차 및 지시]
+    # 1. (이해) 학생 답안을 전체적으로 읽고 핵심 주장 파악
+    # 2. (비교) 채점 기준 및 예시답안과 비교하여 분석
+    # 3. (평가) 장단점 명시
+    # 4. (종합) 첨삭 문장 완성
 
-    [출력 형식]
-    ---
-    **[총평]**
-    ...
+    # [출력 형식]
+    # ---
+    # **[총평]**
+    # ...
 
-    **[잘한 점 (칭찬 포인트) 👍]**
-    ...
+    # **[잘한 점 (칭찬 포인트) 👍]**
+    # ...
 
-    **[아쉬운 점 (개선 포인트) ✍️]**
-    ...
+    # **[아쉬운 점 (개선 포인트) ✍️]**
+    # ...
 
-    **[이렇게 바꿔보세요 (대안 문장 제안) 💡]**
-    ...
+    # **[이렇게 바꿔보세요 (대안 문장 제안) 💡]**
+    # ...
 
-    **[예상 점수 및 다음 학습 팁 🚀]**
-    ...
+    # **[예상 점수 및 다음 학습 팁 🚀]**
+    # ...
 
-    [추가 질문]
-    {followup_question}
-    """
-        messages = [{"role": "system", "content": "너는 논리왕 김멘토로 행동해. 위 정보에 따라 학생에게 논리적이고 애정 어린 피드백을 제공해."}]
+    # [추가 질문]
+    # {followup_question}
+    # """
+        prompt = """
+당신은 10년 이상 수능 및 대학 논술을 전문적으로 가르쳐온 첨삭 전문가입니다.
+학생의 질문에 대해 학생이 작성한 논술 문장을 바탕으로 명확하고 구체적인 피드백을 제공합니다.
+
+[제시 문장]
+아래는 벡터 검색을 통해 선택된 학생의 답안 내용 일부입니다. 참고해 분석에 활용하세요.
+
+{user_answer}
+
+[학생 질문]
+{followup_question}
+
+[답변 지침]
+1. 질문의 요지를 파악하고, 답안 문장 중 관련 있는 내용을 연결해 해석합니다.
+2. 부족하거나 개선이 필요한 부분이 있다면 논리적으로 설명하고 구체적인 문장 또는 방향을 제안합니다.
+3. 피드백은 친절하고 조리 있게 제시하되, 논리성과 구조적 사고력을 기를 수 있도록 유도합니다.
+4. 학생이 잘 이해할 수 있도록 길고 구체적으로, 상세히 답변해줍니다.
+
+[답변 형식 예시]
+### 🧠 분석
+- (질문 요지를 요약하고, 학생 답안에서 관련 문장을 어떻게 해석했는지 설명)
+
+### 💡 개선 제안
+- (보다 나은 문장 표현 / 논리 전개 / 사례 추가 등 구체적 개선 방법 제안)
+
+### 🗒️ 예시 답변
+- (분석과 개선 제안을 토대로 모범 답안 혹은 진행 방향을 예시로 보여주기)
+
+### 🏁 요약 및 다음 단계
+- (종합 정리와 향후 유사 질문 대비 학습 팁)
+
+[답변]
+"""
+        messages = [{"role": "system", "content": "당신은 10년 이상 수능 및 대학 논술을 전문적으로 가르쳐온 첨삭 전문가입니다. 학생의 질문에 대해 학생이 작성한 논술 문장을 바탕으로 명확하고 구체적인 피드백을 제공합니다."}]
         messages.append({"role": "user", "content": prompt})
         for h in history:
             messages.append({"role": "user", "content": h["user"]})
