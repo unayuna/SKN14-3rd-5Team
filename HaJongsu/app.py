@@ -7,8 +7,9 @@ from essay_grader import EssayGrader
 from display_ui import display_correction_with_diff
 import numpy as np
 import streamlit as st
+import streamlit.components.v1 as components
 import fitz  # PDF 미리보기용
-import cv2, os
+import cv2, os, base64
 
 
 load_dotenv()
@@ -31,14 +32,37 @@ def load_ocr():
     return PaddleOCR(use_angle_cls=True, lang='korean')
 ocr_model = load_ocr()
 
-    
-# def chat_with_gpt(question_id, prompt_text, history=[]):
-#     # 일반 챗봇 질문 대응을 위해 EssayGrader에 단순한 채팅 기능 추가
-#     return grader.graded_chat(question_id, prompt_text)
-# def chat_with_gpt(prompt_text, history=[]):
-#     response = grader.simple_chat(prompt_text, history)
-#     st.session_state.chat_history.append({"user": prompt_text, "assistant": response})
-#     return response
+
+def render_js_timer(timer_id):
+    components.html(f"""
+        <div id="timer_{timer_id}" style="font-size:24px; font-weight:bold; color:green; margin: 10px 0; text-align: center;"></div>
+        <script>
+        if (!sessionStorage.getItem('remaining_{timer_id}')) {{
+            sessionStorage.setItem('remaining_{timer_id}', 0);
+        }}
+        var total = parseInt(sessionStorage.getItem('remaining_{timer_id}'));
+        if (isNaN(total)) total = 0;
+
+        function updateTimer() {{
+            var paused = sessionStorage.getItem('paused_{timer_id}') === 'true';
+            var minutes = Math.floor(total / 60);
+            var seconds = total % 60;
+            if (paused) {{
+                document.getElementById("timer_{timer_id}").innerHTML = "⏸ 타이머가 일시 정지되었습니다. 남은 시간: " + minutes + "분 " + (seconds < 10 ? "0" : "") + seconds + "초";
+            }} else if (total > 0) {{
+                document.getElementById("timer_{timer_id}").innerHTML = "남은 시간: " + minutes + "분 " + (seconds < 10 ? "0" : "") + seconds + "초";
+                total -= 1;
+                sessionStorage.setItem('remaining_{timer_id}', total);
+            }} else {{
+                document.getElementById("timer_{timer_id}").innerHTML = "⏰ 시간이 종료되었습니다!";
+            }}
+            setTimeout(updateTimer, 1000);
+        }}
+
+        updateTimer();
+        </script>
+    """, height=60)
+
 
 def render_home():
     st.markdown("""
@@ -49,44 +73,38 @@ def render_home():
             align-items: center;
             justify-content: flex-start;
             padding-top: 13vh;
-            text-align: center;
         }
 
         .home-title {
             font-size: 42px;
             font-weight: bold;
             margin-bottom: 10px;
-            text-align: center;
         }
 
         .home-subtitle {
             font-size: 18px;
             color: gray;
             margin-bottom: 30px;
-            text-align: center;
         }
 
         .button-row {
             display: flex;
             justify-content: center;
-            gap: 10px;
-            margin-top: 5px;
+            gap: 20px;
+            margin-top: 10px;
         }
 
-        .custom-button {
-            background-color: #2d6cdf;
-            color: white;
-            border: none;
-            padding: 10px 24px;
+        .stButton > button {
             font-size: 16px;
+            padding: 12px 24px;
             border-radius: 8px;
+            min-width: 160px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
-            min-width: 120px;
         }
 
-        .custom-button:hover {
-            background-color: #1c4fad;
+        .stButton > button:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -94,6 +112,9 @@ def render_home():
     st.markdown("<div class='center-container'>", unsafe_allow_html=True)
     st.markdown("<div class='home-title'>🤖 AI 첨삭 챗봇</div>", unsafe_allow_html=True)
     st.markdown("<div class='home-subtitle'>원하는 기능을 선택하세요</div>", unsafe_allow_html=True)
+
+    # 🔹 버튼 행
+    st.markdown("<div class='button-row'>", unsafe_allow_html=True)
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("📄 시험지 보기"):
@@ -104,6 +125,9 @@ def render_home():
             st.session_state.page = "grading"
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 
 
 def render_exam():
@@ -112,44 +136,128 @@ def render_exam():
         st.session_state.page = "home"
         st.rerun()
 
-    selected_univ = st.selectbox("학교 선택", ["선택"] + list(UNIVERSITY_DATA.keys()))
-    selected_year = st.selectbox("연도 선택", ["선택"] + list(UNIVERSITY_DATA.get(selected_univ, {}).keys()))
-    question_keys = list(UNIVERSITY_DATA.get(selected_univ, {}).get(selected_year, {}).keys())
-    selected_question = st.selectbox("문항 선택", ["선택"] + question_keys)
+    with st.sidebar:
+        selected_univ = st.selectbox("학교 선택", ["선택"] + list(UNIVERSITY_DATA.keys()))
+        selected_year = st.selectbox("연도 선택", ["선택"] + list(UNIVERSITY_DATA.get(selected_univ, {}).keys()))
+        question_keys = list(UNIVERSITY_DATA.get(selected_univ, {}).get(selected_year, {}).keys())
+        selected_question = st.selectbox("문항 선택", ["선택"] + question_keys)
+
+        st.markdown("## ⏱️ 타이머 설정")
+        timer_minutes = st.number_input(
+            "풀이 시간을 설정하세요 (분 단위)",
+            min_value=1, max_value=180, value=30,
+            key="timer_setting"
+        )
     if 'pix' not in st.session_state:
         st.session_state.pix = False
 
     if selected_univ == "선택" or selected_year == "선택" or selected_question == "선택":
-        st.write('문제를 선택해주세요')
-    else:
-        pdf_path = UNIVERSITY_DATA[selected_univ][selected_year][selected_question]["pdf"]
-        page_list = UNIVERSITY_DATA[selected_univ][selected_year][selected_question]["page"]
-        st.session_state.page_list = page_list
-        st.session_state['question_id'] = pdf_path.split('/')[-1].split('.')[0]
-        st.session_state.selected_question = selected_question
+        # st.write('사이드바에서 문제를 선택해주세요')
+        st.info('📌 왼쪽에서 학교, 연도, 문항을 선택해주세요.')
+        return
+    # else:
+    current_question_key = f"{selected_univ}_{selected_year}_{selected_question}"
+    previous_question_key = st.session_state.get("previous_question_key")
+    if current_question_key != previous_question_key:
+        st.session_state.page_num = 0
+        st.session_state["previous_question_key"] = current_question_key
+    pdf_path = UNIVERSITY_DATA[selected_univ][selected_year][selected_question]["pdf"]
+    page_list = UNIVERSITY_DATA[selected_univ][selected_year][selected_question]["page"]
+    st.session_state.page_list = page_list
+    st.session_state['question_id'] = pdf_path.split('/')[-1].split('.')[0]
+    st.session_state.selected_question = selected_question
+    question_id = st.session_state['question_id']
 
-        try:
-            doc = fitz.open(pdf_path)
-            total_pages = len(page_list)
-            cur_page = st.session_state.page_num
+    timer_key = f"timer_state_{question_id}"
+    if timer_key not in st.session_state:
+        st.session_state[timer_key] = {
+            "running": False,
+            "paused": False,
+            "seconds": timer_minutes * 60
+        }
+    timer_state = st.session_state[timer_key]
 
-            st.markdown(f"**페이지 {cur_page + 1} / {total_pages}**")
-            page = doc[page_list[cur_page]]
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-            st.image(pix.tobytes("png"), use_container_width=True)
+    # ⏱️ 타이머 버튼 UI
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col1:
+        if st.button("▶️ 타이머 시작"):
+            timer_state["running"] = True
+            timer_state["paused"] = False
+            components.html(f"""
+                <script>
+                    sessionStorage.setItem('remaining_{question_id}', {timer_state['seconds']});
+                    sessionStorage.setItem('paused_{question_id}', 'false');
+                </script>
+            """, height=0)
+    with col2:
+        if st.button("⏯ 일시정지 / 재개"):
+            if timer_state["running"]:
+                timer_state["paused"] = not timer_state["paused"]
+                pause_val = 'true' if timer_state["paused"] else 'false'
+                components.html(f"""
+                    <script>
+                        sessionStorage.setItem('paused_{question_id}', '{pause_val}');
+                    </script>
+                """, height=0)
+    with col3:
+        if st.button("⏹ 타이머 종료"):
+            timer_state["running"] = False
+            timer_state["paused"] = False
+            timer_state["seconds"] = timer_minutes * 60
+            components.html(f"""
+                <script>
+                    sessionStorage.removeItem('remaining_{question_id}');
+                    sessionStorage.setItem('paused_{question_id}', 'false');
+                </script>
+            """, height=0)
 
-            col1, _, col2 = st.columns([1, 6, 1])
-            with col1:
-                if st.button("⬅ 이전", key="prev_exam") and cur_page > 0:
+    # ⏰ 타이머 표시
+    if timer_state["running"]:
+        render_js_timer(question_id)
+    elif timer_state["paused"]:
+        st.info("⏸ 타이머 일시정지 상태입니다.")
+
+    try:
+        doc = fitz.open(pdf_path)
+        total_pages = len(page_list)
+        cur_page = st.session_state.page_num
+
+        st.markdown(f"**페이지 {cur_page + 1} / {total_pages}**")
+
+        page = doc[page_list[cur_page]]
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+        # st.image(pix.tobytes("png"), use_container_width=True)
+        # pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))
+        image_bytes = pix.tobytes("png")
+        base64_image = base64.b64encode(image_bytes).decode()
+
+        st.markdown(
+            f"""
+            <div style="text-align: center;">
+                <img src="data:image/png;base64,{base64_image}" style="max-height:130vh; width:auto; border:1px solid #ccc;" />
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        col1, _, col2 = st.columns([1, 6, 1])
+        with col1:
+            if st.button("⬅ 이전", key="prev_exam"):
+                if cur_page > 0:
                     st.session_state.page_num -= 1
                     st.rerun()
-            with col2:
-                if st.button("다음 ➡", key="next_exam") and cur_page < total_pages - 1:
+                else:
+                    st.warning("✅ 첫 페이지입니다.")
+        with col2:
+            if st.button("다음 ➡", key="next_exam"):
+                if cur_page < total_pages - 1:
                     st.session_state.page_num += 1
                     st.rerun()
+                else:
+                    st.warning("✅ 마지막 페이지입니다.")
 
-        except Exception as e:
-            st.error(f"PDF 로딩 실패: {e}")
+    except Exception as e:
+        st.error(f"PDF 로딩 실패: {e}")
 
 
 def render_grading():
