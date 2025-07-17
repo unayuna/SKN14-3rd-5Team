@@ -6,11 +6,10 @@ import pickle
 
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
-from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+from langchain_core.runnables import RunnableLambda
 
 FAISS_INDEX_DIR = './01_data_preprocessing/faiss'
 DOCUMENT_CACHE_PATH = "./01_data_preprocessing/faiss/preprocessed_documents.pkl"

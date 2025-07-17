@@ -9,7 +9,7 @@ import numpy as np
 import streamlit as st
 import streamlit.components.v1 as components
 import fitz  # PDF 미리보기용
-import cv2, os, base64
+import base64
 
 
 load_dotenv()
@@ -311,44 +311,43 @@ def render_grading():
                 st.image(image, use_container_width=True)
 
             if st.button("🤖 GPT 첨삭 실행", key=f"gpt_feedback_{index}"):
-                st.markdown("## 📄 첨삭 결과")
+                with st.spinner("첨삭을 진행 중입니다..."):
+                    st.markdown("## 📄 첨삭 결과")
 
+                    # 이미지 전처리
+                    image = Image.open(current_file).convert('RGB')
+                    img_np = np.array(image)
 
+                    # OCR 수행
+                    try:
+                        result = ocr_model.ocr(img_np)
 
-                # 이미지 전처리
-                image = Image.open(current_file).convert('RGB')
-                img_np = np.array(image)
+                        if result:
+                            extracted_text = '\n'.join(result[0]['rec_texts'])
+                        else:
+                            extracted_text = "❌ 인식된 텍스트가 없습니다."
 
-                # OCR 수행
-                try:
-                    result = ocr_model.ocr(img_np)
+                    except Exception as e:
+                        extracted_text = f"❌ OCR 실행 중 오류: {e}"
 
-                    if result:
-                        extracted_text = '\n'.join(result[0]['rec_texts'])
+                    # OCR 결과 표시
+                    st.subheader("📄 OCR 추출 텍스트:")
+                    st.code(extracted_text)
+                    st.session_state.extracted_text = extracted_text
+                    # GPT 첨삭 결과
+                    # st.subheader("🤖 GPT 첨삭 결과:")
+                    if 'grading_criteria' not in st.session_state:
+                        st.session_state.grading_criteria = False
+                    if 'model_answer' not in st.session_state:
+                        st.session_state.model_answer = False
+                    if "❌" not in extracted_text and st.session_state['question_id']:
+                        st.session_state.grading_criteria = grader.get_document_content(st.session_state['question_id'], "채점기준")
+                        st.session_state.model_answer = grader.get_document_content(st.session_state['question_id'], "모범답안")
+                        correction_result = grader.grade_essay(st.session_state['question_id'], extracted_text)
+                        
+                        display_correction_with_diff(extracted_text, st.session_state.model_answer, correction_result)
                     else:
-                        extracted_text = "❌ 인식된 텍스트가 없습니다."
-
-                except Exception as e:
-                    extracted_text = f"❌ OCR 실행 중 오류: {e}"
-
-                # OCR 결과 표시
-                st.subheader("📄 OCR 추출 텍스트:")
-                st.code(extracted_text)
-                st.session_state.extracted_text = extracted_text
-                # GPT 첨삭 결과
-                # st.subheader("🤖 GPT 첨삭 결과:")
-                if 'grading_criteria' not in st.session_state:
-                    st.session_state.grading_criteria = False
-                if 'model_answer' not in st.session_state:
-                    st.session_state.model_answer = False
-                if "❌" not in extracted_text and st.session_state['question_id']:
-                    st.session_state.grading_criteria = grader.get_document_content(st.session_state['question_id'], "채점기준")
-                    st.session_state.model_answer = grader.get_document_content(st.session_state['question_id'], "모범답안")
-                    correction_result = grader.grade_essay(st.session_state['question_id'], extracted_text)
-                    
-                    display_correction_with_diff(extracted_text, st.session_state.model_answer, correction_result)
-                else:
-                    st.info("텍스트 추출 결과가 없어 GPT 첨삭을 실행할 수 없습니다.")
+                        st.info("텍스트 추출 결과가 없어 GPT 첨삭을 실행할 수 없습니다.")
 
     # 챗봇 섹션
     st.markdown("---")
@@ -359,6 +358,27 @@ def render_grading():
         with st.spinner("답변 생성 중..."):
             gpt_response = grader.mento_chat(st.session_state.grading_criteria, st.session_state.model_answer, st.session_state.extracted_text, chat_input, st.session_state.chat_history)
             st.session_state.chat_history.append({"user": chat_input, "assistant": gpt_response})
+    st.markdown("---")
+    st.subheader("🧠 내 답변 기반 Q&A 챗봇")
+
+    faq_questions = [
+        "내 주장의 논리 전개가 괜찮은가요?",
+        "더 설득력 있게 쓰려면 어떤 표현을 쓰면 좋을까요?",
+        "결론 부분을 어떻게 보완할 수 있을까요?",
+        "예시가 부족한가요?",
+        "문장이 너무 평범한가요? 인상 깊게 고치는 방법은?"
+    ]
+
+    st.markdown("#### 📌 자주 묻는 질문")
+    for i, question in enumerate(faq_questions):
+        if st.button(question, key=f"faq_{i}"):
+            st.session_state["faq_clicked"] = question
+            
+
+    # 자동 질문 처리
+    if "faq_clicked" in st.session_state and st.session_state["faq_clicked"]:
+        user_q = st.session_state["faq_clicked"]
+        st.session_state["faq_clicked"] = ""
 
     for i, turn in enumerate(st.session_state.chat_history[::-1]):
         st.markdown(f"**👤 질문:** {turn['user']}")
