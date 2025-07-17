@@ -357,6 +357,7 @@ def render_grading():
                     if "❌" not in extracted_text and st.session_state['question_id']:
                         st.session_state.grading_criteria = grader.get_document_content(st.session_state['question_id'], "채점기준")
                         st.session_state.model_answer = grader.get_document_content(st.session_state['question_id'], "모범답안")
+                        st.session_state.purpose = grader.get_document_content(st.session_state['question_id'], "출제의도")
                         correction_result = grader.grade_essay(st.session_state['question_id'], extracted_text)
                         
                         display_correction_with_diff(extracted_text, st.session_state.model_answer, correction_result)
